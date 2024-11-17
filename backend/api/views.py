@@ -26,7 +26,7 @@ supabase: Client = create_client(
 )
 
 # Get Make.com webhook URL
-MAKE_WEBHOOK_URL = os.getenv('MAKE_WEBHOOK_URL')
+MAKE_WEBHOOK_URL = os.getenv('MAKE_WEBHOOK_URL', 'https://hook.eu1.make.com/yourwebhookurl')
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()

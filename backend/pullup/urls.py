@@ -17,10 +17,14 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.http import HttpResponse
 from rest_framework.documentation import include_docs_urls
 
+def index(request):
+    return HttpResponse("Pullup API is running. Visit <a href='/api/'>API</a> or <a href='/docs/'>Documentation</a>")
+
 urlpatterns = [
-    path('', RedirectView.as_view(url='/api/', permanent=False)),
+    path('', index, name='index'),
     path('admin/', admin.site.urls),
     path('api/', include('api.urls')),
     path('docs/', include_docs_urls(title='Pullup API')),
