@@ -79,42 +79,54 @@ def scrape_products(request):
 def scrape_callback(request):
     """Callback endpoint for Make.com to send scraped data"""
     try:
+        print("Received webhook callback from Make.com")
+        print("Request data:", request.data)
+        
         scraped_data = request.data
         
         # Insert scraped data into Supabase
         for product in scraped_data:
-            supabase.table('products').insert({
+            print(f"Processing product: {product['product_name']} from {product['company_name']}")
+            result = supabase.table('products').insert({
                 'company_name': product['company_name'],
                 'product_name': product['product_name'],
                 'price': float(product['price']),
                 'rating': float(product['rating']),
                 'reviews': product['reviews']
             }).execute()
+            print(f"Inserted product into Supabase: {result.data}")
         
         return Response({'message': 'Data processed successfully'}, status=status.HTTP_200_OK)
     except Exception as e:
+        print(f"Error in scrape_callback: {str(e)}")
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 def compare_products(request):
     try:
-        companies = [request.data.get('primary_company')] + request.data.get('competitor_companies', [])
+        primary_company = request.data.get('primary_company')
+        competitor_companies = request.data.get('competitor_companies', [])
+        
+        # Get product comparison data
+        comparison = supabase.rpc(
+            'get_product_comparison',
+            {
+                'primary_company': primary_company,
+                'competitor_companies': competitor_companies
+            }
+        ).execute()
         
         # Get company statistics
         stats = supabase.rpc(
             'get_company_statistics',
-            {'company_names': companies}
-        ).execute()
-        
-        # Get detailed product information
-        products = supabase.rpc(
-            'search_products_by_companies',
-            {'company_names': companies}
+            {
+                'company_names': [primary_company] + competitor_companies
+            }
         ).execute()
         
         response_data = {
-            'statistics': stats.data,
-            'products': products.data
+            'comparison': comparison.data,
+            'statistics': stats.data
         }
         
         return Response(response_data, status=status.HTTP_200_OK)

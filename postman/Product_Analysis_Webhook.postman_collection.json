@@ -1,0 +1,72 @@
+{
+	"info": {
+		"_postman_id": "random-uuid",
+		"name": "Product Analysis Webhook",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Trigger Scraper Webhook",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"companyName\": \"Boult\"\n}"
+				},
+				"url": {
+					"raw": "https://hook.eu2.make.com/0udpdkarnhtlsx1fgyeu9hxych3mj91c",
+					"protocol": "https",
+					"host": [
+						"hook",
+						"eu2",
+						"make",
+						"com"
+					],
+					"path": [
+						"0udpdkarnhtlsx1fgyeu9hxych3mj91c"
+					]
+				},
+				"description": "Webhook to trigger product scraping for a company"
+			},
+			"response": []
+		},
+		{
+			"name": "Test Scrape Callback",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"company_name\": \"Apple\",\n        \"product_name\": \"iPhone 13\",\n        \"price\": 999.99,\n        \"rating\": 4.5,\n        \"reviews\": \"Great phone with excellent camera\"\n    },\n    {\n        \"company_name\": \"Samsung\",\n        \"product_name\": \"Galaxy S21\",\n        \"price\": 899.99,\n        \"rating\": 4.3,\n        \"reviews\": \"Good Android flagship phone\"\n    }\n]"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/webhook/scrape-callback/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"webhook",
+						"scrape-callback",
+						""
+					]
+				},
+				"description": "Test the scrape callback endpoint that receives data from Make.com"
+			},
+			"response": []
+		}
+	]
+}
