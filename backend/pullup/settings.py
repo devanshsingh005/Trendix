@@ -140,7 +140,17 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Extra places for collectstatic to find static files
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'staticfiles'),
+]
+
+# Simplified static file serving
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Create the staticfiles directory if it doesn't exist
+os.makedirs(os.path.join(BASE_DIR, 'staticfiles'), exist_ok=True)
 
 # Rest Framework settings
 REST_FRAMEWORK = {
