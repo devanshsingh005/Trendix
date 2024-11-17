@@ -24,7 +24,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-secret-key-here')
+DJANGO_SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '4eo#r(o$r1+*m34c^r9eb&k&gj6y-zt%!9j3eyt=ma&dqr$4gc')
+SUPABASE_URL = os.getenv('SUPABASE_URL', 'https://lbyeddvmqoowhfvseplu.supabase.co')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxieWVkZHZtcW9vd2hmdnNlcGx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE1NjMyNjEsImV4cCI6MjA0NzEzOTI2MX0.HHWY43rfN_EZMUhE1EcilOuWdwG-4dsei0FhvfR2REE')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = 'PYTHONANYWHERE_SITE' not in os.environ
@@ -32,7 +34,7 @@ DEBUG = 'PYTHONANYWHERE_SITE' not in os.environ
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '.pythonanywhere.com'  # Allow all subdomains of pythonanywhere.com
+    'ayushthegreat.pythonanywhere.com'
 ]
 
 
@@ -66,8 +68,9 @@ MIDDLEWARE = [
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://pullup-frontend.vercel.app",  # We'll deploy frontend to Vercel
+    "https://pullup-frontend.vercel.app"
 ]
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'pullup.urls'
 

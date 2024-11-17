@@ -1,0 +1,19 @@
+import os
+import sys
+
+# Add your project directory to the sys.path
+path = '/home/ayushthegreat/ProductAnalysis/backend'
+if path not in sys.path:
+    sys.path.append(path)
+
+# Set environment variables
+os.environ['DJANGO_SECRET_KEY'] = '4eo#r(o$r1+*m34c^r9eb&k&gj6y-zt%!9j3eyt=ma&dqr$4gc'
+os.environ['SUPABASE_URL'] = 'https://lbyeddvmqoowhfvseplu.supabase.co'
+os.environ['SUPABASE_KEY'] = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxieWVkZHZtcW9vd2hmdnNlcGx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzE1NjMyNjEsImV4cCI6MjA0NzEzOTI2MX0.HHWY43rfN_EZMUhE1EcilOuWdwG-4dsei0FhvfR2REE'
+os.environ['PYTHONANYWHERE_SITE'] = 'True'
+
+# Set the Django settings module
+os.environ['DJANGO_SETTINGS_MODULE'] = 'pullup.settings'
+
+# Import and return the Django WSGI application
+from pullup.wsgi import application

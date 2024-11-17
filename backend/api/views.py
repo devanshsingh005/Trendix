@@ -14,14 +14,15 @@ from rest_framework.throttling import AnonRateThrottle
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
 import re
+from django.conf import settings
 
 # Load environment variables
 load_dotenv()
 
 # Initialize Supabase client
 supabase: Client = create_client(
-    supabase_url=os.getenv('SUPABASE_URL'),
-    supabase_key=os.getenv('SUPABASE_KEY')
+    supabase_url=settings.SUPABASE_URL,
+    supabase_key=settings.SUPABASE_KEY
 )
 
 # Get Make.com webhook URL
