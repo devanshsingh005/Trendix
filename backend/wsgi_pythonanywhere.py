@@ -2,11 +2,11 @@ import os
 import sys
 import logging
 
-# Configure logging
+# Configure logging to use sys.stderr
 logging.basicConfig(
+    stream=sys.stderr,
     level=logging.DEBUG,
-    format='%(asctime)s %(levelname)s %(message)s',
-    filename='/var/log/ayushthegreat.pythonanywhere.com.error.log'
+    format='%(asctime)s %(levelname)s %(message)s'
 )
 
 # Log the current Python path
@@ -28,6 +28,14 @@ try:
     # Set up Django's settings module
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'pullup.settings')
     logging.debug('Set DJANGO_SETTINGS_MODULE to %s', os.environ['DJANGO_SETTINGS_MODULE'])
+
+    # Try importing Django settings to verify they can be loaded
+    try:
+        from pullup import settings
+        logging.debug('Successfully imported Django settings')
+    except Exception as e:
+        logging.error('Failed to import Django settings: %s', str(e))
+        raise
 
     # Import and create the WSGI application
     from django.core.wsgi import get_wsgi_application
