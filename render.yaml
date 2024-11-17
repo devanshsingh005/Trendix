@@ -2,9 +2,10 @@ services:
   - type: web
     name: pullup-backend
     env: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn pullup.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --worker-class gthread --worker-tmp-dir /dev/shm
+    region: ohio
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && gunicorn --chdir backend pullup.wsgi:application --bind 0.0.0.0:$PORT --log-file -
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false
@@ -20,3 +21,5 @@ services:
         value: 10000
       - key: DJANGO_SETTINGS_MODULE
         value: pullup.settings
+      - key: WEB_CONCURRENCY
+        value: 2
