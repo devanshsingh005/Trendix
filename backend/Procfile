@@ -1,1 +1,0 @@
-web: gunicorn pullup.wsgi:application --log-file -
