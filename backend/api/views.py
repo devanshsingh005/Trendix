@@ -4,15 +4,24 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Product
 from .serializers import ProductSerializer
-from supabase import create_client
+from supabase import create_client, Client
 import os
 from datetime import datetime
 import requests
+from dotenv import load_dotenv
+from django.core.cache import cache
+from rest_framework.throttling import AnonRateThrottle
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
+import re
+
+# Load environment variables
+load_dotenv()
 
 # Initialize Supabase client
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_KEY')
+supabase: Client = create_client(
+    supabase_url=os.getenv('SUPABASE_URL'),
+    supabase_key=os.getenv('SUPABASE_KEY')
 )
 
 # Get Make.com webhook URL
@@ -37,11 +46,34 @@ class ProductViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+def validate_company_name(name):
+    if not name or not isinstance(name, str):
+        raise ValidationError('Company name must be a non-empty string')
+    if not re.match(r'^[a-zA-Z0-9\s\-\.]+$', name):
+        raise ValidationError('Company name contains invalid characters')
+    return name.strip()
+
 @api_view(['POST'])
 def scrape_products(request):
     try:
         primary_company = request.data.get('primary_company')
         competitor_companies = request.data.get('competitor_companies', [])
+        
+        # Validate company names
+        try:
+            primary_company = validate_company_name(primary_company)
+            competitor_companies = [validate_company_name(comp) for comp in competitor_companies]
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check rate limit
+        cache_key = f'scrape_request_{request.META.get("REMOTE_ADDR")}'
+        if cache.get(cache_key):
+            return Response(
+                {'error': 'Please wait before making another request'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+        cache.set(cache_key, True, 60)  # 1 minute cooldown
         
         if not MAKE_WEBHOOK_URL:
             return Response(
@@ -58,13 +90,19 @@ def scrape_products(request):
             'callback_url': request.build_absolute_uri('/api/webhook/scrape-callback/')
         }
 
-        # Send request to Make.com webhook
-        response = requests.post(MAKE_WEBHOOK_URL, json=webhook_data)
-        
-        if response.status_code != 200:
+        # Send request to Make.com webhook with timeout
+        try:
+            response = requests.post(MAKE_WEBHOOK_URL, json=webhook_data, timeout=10)
+            response.raise_for_status()
+        except requests.Timeout:
             return Response(
-                {'error': 'Failed to trigger Make.com webhook'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {'error': 'Make.com webhook timeout'}, 
+                status=status.HTTP_504_GATEWAY_TIMEOUT
+            )
+        except requests.RequestException as e:
+            return Response(
+                {'error': f'Make.com webhook error: {str(e)}'}, 
+                status=status.HTTP_502_BAD_GATEWAY
             )
 
         return Response({
