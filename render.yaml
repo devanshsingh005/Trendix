@@ -2,8 +2,13 @@ services:
   - type: web
     name: pullup-backend
     env: python
-    buildCommand: cd backend && pip install -r requirements.txt
-    startCommand: cd backend && python manage.py collectstatic --noinput && gunicorn pullup.wsgi:application --bind 0.0.0.0:$PORT
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    startCommand: |
+      cd backend
+      PYTHONPATH=/opt/render/project/src/backend gunicorn --chdir /opt/render/project/src/backend pullup.wsgi:application --bind 0.0.0.0:$PORT --timeout 120
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false
@@ -17,3 +22,5 @@ services:
         value: 3.11.2
       - key: PORT
         value: 10000
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
