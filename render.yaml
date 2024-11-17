@@ -2,14 +2,9 @@ services:
   - type: web
     name: pullup-backend
     env: python
-    buildCommand: |
-      python -m pip install --upgrade pip
-      pip install -r backend/requirements.txt
-    startCommand: |
-      cd backend
-      python manage.py migrate
-      python manage.py collectstatic --noinput
-      gunicorn --bind=0.0.0.0:$PORT --workers=2 --threads=4 --worker-class=gthread --worker-tmp-dir=/dev/shm pullup.wsgi:application
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn pullup.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --worker-class gthread --worker-tmp-dir /dev/shm
     envVars:
       - key: DJANGO_SECRET_KEY
         sync: false
