@@ -17,7 +17,7 @@ function App() {
 
   const pollComparisonResults = useCallback(async (companies: string[], attempts = 0) => {
     try {
-      const data = await getProductComparison();
+      const data = await getProductComparison(companies);
       if (data.length > 0) {
         setProducts(data);
         setLoading(false);

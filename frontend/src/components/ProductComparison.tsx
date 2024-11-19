@@ -17,8 +17,8 @@ interface Product {
   id: string;
   company_name: string;
   product_name: string;
-  price: number;
-  rating: number;
+  price: string | number;
+  rating: string | number;
   reviews: number;
 }
 
@@ -53,6 +53,16 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
     return null;
   }
 
+  const formatPrice = (price: string | number): string => {
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return numPrice.toFixed(2);
+  };
+
+  const formatRating = (rating: string | number): string => {
+    const numRating = typeof rating === 'string' ? parseFloat(rating) : rating;
+    return numRating.toFixed(1);
+  };
+
   return (
     <Paper elevation={3} sx={{ mt: 4, p: 3 }}>
       <Typography variant="h5" gutterBottom>
@@ -76,10 +86,10 @@ const ProductComparison: React.FC<ProductComparisonProps> = ({
                 <TableCell>{product.company_name}</TableCell>
                 <TableCell>{product.product_name}</TableCell>
                 <TableCell align="right">
-                  {product.price.toFixed(2)}
+                  {formatPrice(product.price)}
                 </TableCell>
                 <TableCell align="right">
-                  {product.rating.toFixed(1)}
+                  {formatRating(product.rating)}
                 </TableCell>
                 <TableCell align="right">{product.reviews}</TableCell>
               </TableRow>
