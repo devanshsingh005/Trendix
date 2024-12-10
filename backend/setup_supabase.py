@@ -5,11 +5,16 @@ from supabase import create_client
 # Load environment variables
 load_dotenv()
 
-# Initialize Supabase client
-supabase = create_client(
-    os.getenv('SUPABASE_URL'),
-    os.getenv('SUPABASE_KEY')
-)
+# Get environment variables
+supabase_url = os.getenv('SUPABASE_URL')
+if supabase_url is None:
+    raise ValueError("Environment variable 'SUPABASE_URL' is not set.")
+
+supabase_key = os.getenv('SUPABASE_KEY')
+if supabase_key is None:
+    raise ValueError("Environment variable 'SUPABASE_KEY' is not set.")
+
+supabase = create_client(supabase_url, supabase_key)
 
 # SQL commands to set up the database
 setup_commands = """

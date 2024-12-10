@@ -33,6 +33,25 @@ MAKE_WEBHOOK_URL = 'https://hook.eu2.make.com/0udpdkarnhtlsx1fgyeu9hxych3mj91c'
 # Test mode flag - set to False to use real Make.com webhook
 TEST_MODE = False
 
+def insert_sample_data():
+    """Insert sample product data into Supabase."""
+    try:
+        sample_data = [
+            {'company_name': 'Samsung', 'product_name': 'Galaxy S21', 'price': 899.99, 'rating': 4.3, 'reviews': 1500},
+            {'company_name': 'Samsung', 'product_name': 'Galaxy Tab S7', 'price': 649.99, 'rating': 4.5, 'reviews': 800},
+            {'company_name': 'Apple', 'product_name': 'iPhone 13', 'price': 999.99, 'rating': 4.6, 'reviews': 2000},
+            {'company_name': 'Apple', 'product_name': 'iPad Pro', 'price': 799.99, 'rating': 4.7, 'reviews': 1200},
+            {'company_name': 'Google', 'product_name': 'Pixel 6', 'price': 699.99, 'rating': 4.4, 'reviews': 900}
+        ]
+        
+        # Insert the sample data
+        response = supabase.table('products').insert(sample_data).execute()
+        logging.info(f"Sample data inserted successfully: {response.data}")
+        return True
+    except Exception as e:
+        logging.error(f"Error inserting sample data: {str(e)}")
+        return False
+
 def verify_webhook_url():
     try:
         # Test the webhook URL with a simple ping
@@ -94,7 +113,8 @@ def validate_company_name(name):
         raise ValidationError('Company name must be a non-empty string')
     if not re.match(r'^[a-zA-Z0-9\s\-\.]+$', name):
         raise ValidationError('Company name contains invalid characters')
-    return name.strip()
+    # Normalize company name to title case
+    return name.strip().title()
 
 def get_callback_url(request):
     """Get the appropriate callback URL based on the environment"""
@@ -105,12 +125,17 @@ def get_callback_url(request):
         # Production
         return "https://ayushthegreat.pythonanywhere.com/api/webhook/scrape-callback/"
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 @throttle_classes([AnonRateThrottle])
 def scrape_products(request):
     try:
-        # Validate input
-        companies = request.data.get('companies', [])
+        # Get companies from either POST data or GET parameters
+        if request.method == 'POST':
+            companies = request.data.get('companies', [])
+        else:
+            companies_param = request.GET.get('companies', '')
+            companies = [c.strip() for c in companies_param.split(',')] if companies_param else []
+            
         logging.info(f"Received scraping request for companies: {companies}")
         
         if not companies:
@@ -427,44 +452,128 @@ def scrape_callback(request):
         logger.exception("Error in scrape_callback view")
         return Response({'error': str(e)}, status=500)
 
-@api_view(['POST'])
+@api_view(['GET', 'POST'])
 def compare_products(request):
     try:
-        # Get products from database
-        companies = request.data.get('companies', [])
+        # Get companies from either POST data or GET parameters
+        if request.method == 'POST':
+            companies = request.data.get('companies', [])
+        else:
+            companies_param = request.GET.get('companies', '')
+            companies = [c.strip() for c in companies_param.split(',')] if companies_param else []
+        
         logging.info(f"Comparing products for companies: {companies}")
         
         if not companies:
-            return Response({'error': 'No company names provided'}, status=400)
-
-        products = []
-        for company in companies:
-            logging.info(f"Looking for products from company: {company}")
-            product = Product.objects.filter(company_name__iexact=company).order_by('-created_at').first()
-            if product:
-                logging.info(f"Found product for {company}: {product.product_name}")
-                products.append({
-                    'company_name': product.company_name,
-                    'product_name': product.product_name,
-                    'price': str(product.price),
-                    'rating': str(product.rating),
-                    'reviews': product.reviews
-                })
-            else:
-                logging.warning(f"No products found for company: {company}")
-
-        if not products:
-            # Check total number of products in database
-            total_products = Product.objects.count()
-            logging.warning(f"No products found for any company. Total products in database: {total_products}")
             return Response({
-                'error': 'No products found for the specified companies',
-                'companies': companies,
-                'total_products': total_products
-            }, status=404)
+                'status': 'error',
+                'message': 'No company names provided. Use ?companies=company1,company2 for GET or {"companies": ["company1", "company2"]} for POST'
+            }, status=400)
 
-        return Response(products)
+        # Query Supabase directly for better performance
+        query = supabase.table('products').select('*').in_('company_name', companies)
+        response = query.execute()
+        
+        if not response.data:
+            # Initiate scraper if no products found
+            logging.info("No products found for companies, initiating scraping...")
+            try:
+                # Call the scrape_products view function directly
+                scrape_response = scrape_products(request._request)
+                if scrape_response.status_code in [200, 201, 202]:
+                    return Response({
+                        'status': 'accepted',
+                        'message': 'Scraping initiated. Please check back later for results.',
+                        'companies': companies
+                    }, status=202)
+                else:
+                    return scrape_response
+            except Exception as scrape_error:
+                logging.exception("Error initiating scraping")
+                return Response({
+                    'status': 'error',
+                    'message': f'Failed to initiate scraping: {str(scrape_error)}'
+                }, status=500)
+        
+        # Group products by company
+        company_products = {}
+        for product in response.data:
+            company = product['company_name']
+            if company not in company_products:
+                company_products[company] = []
+            company_products[company].append({
+                'company_name': product['company_name'],
+                'product_name': product['product_name'],
+                'price': str(product['price']),
+                'rating': str(product['rating']),
+                'reviews': product['reviews']
+            })
+        
+        # Get the best product for each company
+        comparison_results = []
+        for company, products in company_products.items():
+            if products:
+                best_product = sorted(products, key=lambda x: (float(x['rating']), int(x['reviews'])), reverse=True)[0]
+                comparison_results.append(best_product)
+        
+        return Response({
+            'status': 'success',
+            'data': comparison_results
+        })
 
     except Exception as e:
         logging.exception("Error in compare_products view")
-        return Response({'error': str(e)}, status=500)
+        return Response({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+@api_view(['GET'])
+@throttle_classes([AnonRateThrottle])
+def fetch_products(request):
+    try:
+        logging.info("Attempting to fetch products from Supabase...")
+        logging.info(f"Supabase URL: {settings.SUPABASE_URL}")
+        logging.info(f"Supabase key configured: {'Yes' if settings.SUPABASE_KEY else 'No'}")
+        
+        # Fetch products from Supabase
+        response = supabase.table('products').select("*").execute()
+        
+        # Log the complete response for debugging
+        logging.info("Supabase raw response:")
+        logging.info(f"Response data: {response.data}")
+        logging.info(f"Response status: {getattr(response, 'status_code', 'N/A')}")
+        
+        products = response.data if response.data else []
+        logging.info(f"Number of products fetched: {len(products)}")
+        
+        # Convert decimal values to strings for JSON serialization
+        formatted_products = []
+        for product in products:
+            logging.info(f"Processing product: {product}")
+            formatted_product = {
+                'id': str(product.get('id', '')),
+                'company_name': str(product.get('company_name', '')),
+                'product_name': str(product.get('product_name', '')),
+                'price': float(product.get('price', 0)),
+                'rating': float(product.get('rating', 0)),
+                'reviews': int(product.get('reviews', 0))
+            }
+            logging.info(f"Formatted product: {formatted_product}")
+            formatted_products.append(formatted_product)
+        
+        logging.info(f"Total formatted products: {len(formatted_products)}")
+        return Response({
+            'status': 'success',
+            'data': formatted_products
+        }, status=status.HTTP_200_OK)
+            
+    except Exception as e:
+        logging.error(f"Error fetching products from Supabase: {str(e)}")
+        logging.error(f"Exception type: {type(e)}")
+        logging.error(f"Exception details:", exc_info=True)
+        return Response({
+            'status': 'error',
+            'message': 'Failed to fetch products',
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
