@@ -153,12 +153,12 @@ export const checkAndRetryProductAvailability = async (companies: string[]): Pro
     }
 
     // If no data found, send scrape request
-    console.log('No products found, initiating scrape request...');
-    await axios.post(`${API_BASE_URL}/api/scrape/`, { companies });
+    // console.log('No products found, initiating scrape request...');
+    // await axios.post(`${API_BASE_URL}/api/scrape/`, { companies });
 
-    // Wait for 10 seconds after scrape request
-    console.log('Waiting for 10 seconds before checking Supabase...');
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait for 10 seconds
+    // Wait for 1 minute after webhook request
+    console.log('Waiting for 20 seconds before checking Supabase...');
+    await new Promise(resolve => setTimeout(resolve, 20000)); // Wait for 1 minute
 
     // Check Supabase again after waiting
     console.log('Checking Supabase after waiting...');
